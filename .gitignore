@@ -19,3 +19,4 @@ portal/tmp
 
 # Ignore webapp logfiles
 log/
+logs/
