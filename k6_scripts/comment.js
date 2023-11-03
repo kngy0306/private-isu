@@ -2,21 +2,22 @@ import http from "k6/http";
 import { check } from "k6";
 import { url } from "./config.js";
 import { parseHTML } from "k6/html";
+import { getAccount } from "./accounts.js";
 
 // ログインしてコメントを投稿する
 export default function () {
-  // /loginに対しアカウントとパスワードを送信
+  const account = getAccount();
   const login_res = http.post(url("/login"), {
-    account_name: "kona",
-    password: "konakona",
+    account_name: account.account_name,
+    password: account.password,
   });
 
   check(login_res, {
-    "is status 200": (r) => r.status === 200,
+    "/login is status 200": (r) => r.status === 200,
   });
 
   // ユーザページを取得
-  const res = http.get(url("/@kona"));
+  const res = http.get(url(`/@${account.account_name}`));
   const doc = parseHTML(res.body);
 
   //csrf_token, post_idを抽出
@@ -30,6 +31,6 @@ export default function () {
     comment: "Hello k6!",
   });
   check(comment_res, {
-    "is status 200": (r) => r.status === 200,
+    "/comment is status 200": (r) => r.status === 200,
   });
 }

@@ -1,14 +1,16 @@
 import http from 'k6/http';
 import { url } from "./config.js";
 import { parseHTML } from "k6/html";
+import { getAccount } from "./accounts.js";
 
 const testImage = open("testImage.png", "b");
 
 // ログインして画像を投稿するシナリオ
 export default function () {
+  const account = getAccount();
   const res = http.post(url("/login"), {
-    account_name: "kona",
-    password: "konakona",
+    account_name: account.account_name,
+    password: account.password,
   });
 
   const doc = parseHTML(res.body);
