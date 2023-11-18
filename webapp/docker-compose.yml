@@ -33,7 +33,7 @@ services:
           memory: 1g
 
   mysql:
-    image: mysql:8.0
+    image: mysql:8.0.35-debian
     environment:
       #- "TZ=Asia/Tokyo"
       - "MYSQL_ROOT_HOST=%"
@@ -50,6 +50,7 @@ services:
         limits:
           cpus: '1'
           memory: 1g
+    platform: linux/amd64
 
   memcached:
     image: memcached:1.6
