@@ -3,6 +3,7 @@ require 'mysql2'
 require 'rack-flash'
 require 'shellwords'
 require 'rack/session/dalli'
+require 'debug'
 
 module Isuconp
   class App < Sinatra::Base
@@ -320,6 +321,8 @@ module Isuconp
           flash[:notice] = 'ファイルサイズが大きすぎます'
           redirect '/', 302
         end
+
+        # debugger
 
         params['file'][:tempfile].rewind
         query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)'

@@ -25,6 +25,9 @@ services:
       - memcached
     volumes:
       - ./public:/home/public
+      - ./ruby:/home/webapp
+    stdin_open: true
+    tty: true
     init: true
     deploy:
       resources:
