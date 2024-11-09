@@ -79,20 +79,19 @@ $ /home/isucon/private_isu/benchmarker/bin/benchmarker -u /home/isucon/private_i
 
 以下のAMI IDで起動する。リージョンは『Asia Pacific (Tokyo)』。
 
-競技者用 (Ubuntu 22.04):
+競技者用 (Ubuntu 24.04):
 
-| 用途   |        AMI ID         |              AMI name               | 推奨インスタンスタイプ |
-| ------ | :-------------------: | :---------------------------------: | ---------------------- |
-| x86_64 | ami-0676c829e30e00846 | catatsuy_private_isu_amd64_20230514 | c6i.large              |
-| arm64  | ami-033f7595cf49acd85 | catatsuy_private_isu_arm64_20230514 | c6g.large              |
+| Arch   |                                                                      AMI ID                                                                      | 推奨インスタンスタイプ |
+| ------ | :----------------------------------------------------------------------------------------------------------------------------------------------: | ---------------------- |
+| x86_64 | [ami-047fdc2b851e73cad](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-047fdc2b851e73cad) | c7a.large              |
+| arm64  | [ami-0bed62bba4100a4b7](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-0bed62bba4100a4b7) | c7g.large              |
 
-ベンチマーカー (Ubuntu 22.04):
+ベンチマーカー (Ubuntu 24.04):
 
-| 用途   |        AMI ID         |                 AMI name                  | 推奨インスタンスタイプ |
-| ------ | :-------------------: | :---------------------------------------: | ---------------------- |
-| x86_64 | ami-0582a2a7fbe79a30d | catatsuy_private_isu_bench_amd64_20230514 | c6i.xlarge             |
-| arm64  | ami-01888a2782271061e | catatsuy_private_isu_bench_arm64_20230514 | c6g.xlarge             |
-
+| Arch   |                                                                      AMI ID                                                                      | 推奨インスタンスタイプ |
+| ------ | :----------------------------------------------------------------------------------------------------------------------------------------------: | ---------------------- |
+| x86_64 | [ami-037be39355baf1f2e](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-037be39355baf1f2e) | c7a.xlarge             |
+| arm64  | [ami-034a457f6af55d65d](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-034a457f6af55d65d) | c7g.xlarge             |
 
 ### 手元で動かす
 
@@ -102,6 +101,14 @@ __いずれの手順もディスク容量が十分にあるマシン上で行う
 * ベンチマーカーはGoの開発環境とuserdataがあれば動く
 * Dockerとvagrantはメモリが潤沢なマシンで実行すること
 
+#### 初期データを用意する
+
+必要になるので、以下の手順を行う前に必ず実行すること。
+
+```sh
+make init
+```
+
 #### MacやLinux上で適当に動かす
 
 MySQLとmemcachedを起動した上で以下の手順を実行。
@@ -110,17 +117,11 @@ MySQLとmemcachedを起動した上で以下の手順を実行。
 * MySQLのrootユーザーのパスワードが設定されていない前提になっているので、設定されている場合は適宜読み替えること
 
 ```sh
-curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
-bzcat dump.sql.bz2 | mysql -uroot
+bunzip2 -c webapp/sql/dump.sql.bz2 | mysql -uroot
 
 cd webapp/ruby
 bundle install --path=vendor/bundle
 bundle exec foreman start
-cd ../..
-
-cd benchmarker/userdata
-curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/img.zip
-unzip img.zip
 cd ../..
 
 cd benchmarker
@@ -134,14 +135,10 @@ make
 
 #### Docker Compose
 
-アプリケーションは以下の手順で実行できる。dump.sqlを配置しないとMySQLに初期データがimportされないので注意。
+アプリケーションは以下の手順で実行できる。dump.sql.bz2を配置しないとMySQLに初期データがimportされないので注意。
 
 ```sh
-cd webapp/sql
-curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
-bunzip2 dump.sql.bz2
-
-cd ..
+cd webapp
 docker compose up
 ```
 
@@ -158,16 +155,11 @@ mv nginx/conf.d/php.conf.org nginx/conf.d/php.conf
 ベンチマーカーは以下の手順で実行できる。
 
 ```sh
-cd benchmarker/userdata
-curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/img.zip
-unzip img.zip
-rm img.zip
-cd ..
-
+cd benchmarker
 docker build -t private-isu-benchmarker .
-docker run --network host -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata
+docker run --network host -i private-isu-benchmarker /bin/benchmarker -t http://host.docker.internal -u /opt/userdata
 # Linuxの場合
-docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata
+docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /bin/benchmarker -t http://host.docker.internal -u /opt/userdata
 ```
 
 動かない場合は`ip a`してdocker0のインタフェースでホストのIPアドレスを調べて`host.docker.internal`の代わりに指定する。以下の場合は`172.17.0.1`を指定する。
@@ -213,13 +205,24 @@ matsuuさんの[cloud-initに対応した環境でISUCONの過去問を構築す
 
 cloud-initに対応した環境、例えばAWS、Azure、Google Cloud、Oracle Cloud、さくらのクラウド、Multipass、VMwareなど、クラウドからローカルまで幅広く環境構築が可能です。
 
+Apple Silicon搭載のマシン上で動作させる場合はMultipassを利用することを推奨します。
+
 https://github.com/matsuu/cloud-init-isucon/tree/main/private-isu
 
 ISUCON過去問題の環境を「さくらのクラウド」で構築する | さくらのナレッジ https://knowledge.sakura.ad.jp/31520/
 
+#### Cloud Formationを利用して構築する
+
+https://gist.github.com/tohutohu/024551682a9004da286b0abd6366fa55 を参照
+
 ### 競技者用・ベンチマーカーインスタンスのセットアップ方法
 
 自分で立ち上げたい人向け。`provisioning/`ディレクトリ以下参照。
+
+### 事例集
+
+* private-isuのベンチマーカーをLambdaで実行する仕組みを公開しました | PR TIMES 開発者ブログ https://developers.prtimes.jp/2024/01/29/private-isu-bench-lambda/
+* 日本CTO協会による合同ISUCON研修の紹介 - Pepabo Tech Portal https://tech.pepabo.com/2024/02/16/isucon-2023/
 
 ## 他の言語実装
 
