@@ -162,6 +162,12 @@ docker run --network host -i private-isu-benchmarker /bin/benchmarker -t http://
 docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /bin/benchmarker -t http://host.docker.internal -u /opt/userdata
 ```
 
+kona独自のエラーでベンチマーカー実行時に`database isuconp が見つからない`となるので、mysqlコンテナにログインしてSQLを流した。
+
+```sh
+cat dump.sql | mysql -uroot -proot
+```
+
 動かない場合は`ip a`してdocker0のインタフェースでホストのIPアドレスを調べて`host.docker.internal`の代わりに指定する。以下の場合は`172.17.0.1`を指定する。
 
 ```
